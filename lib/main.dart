@@ -1,11 +1,40 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 
-void main() {
-  runApp(const MyApp());
+import 'package:flutter/widgets.dart';
+
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+Future<void> main() async {
+  await dotenv.load(); // Load the environment variables
+
+  runApp(MyApp());
+}
+
+
+class EmployeeData {
+  final int empID;
+  final String fname;
+  final String lname;
+  final bool isManager;
+  final String department;
+  final String email;
+  final String password;
+
+  const EmployeeData({
+    required this.empID,
+    required this.fname,
+    required this.lname,
+    required this.isManager,
+    required this.department,
+    required this.email,
+    required this.password
+  });
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
+
 
   @override
   Widget build(BuildContext context) {
