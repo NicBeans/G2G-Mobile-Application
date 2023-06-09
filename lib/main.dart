@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:mysql1/mysql1.dart';
 
-void main() {
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+Future<void> main() async {
+  //await dotenv.load(); // Load the environment variables
   runApp(MyApp());
 }
 
@@ -37,6 +41,7 @@ class LoginPage extends StatelessWidget {
     // and navigate to the home page if the authentication is successful
     Navigator.pushNamed(context, '/home');
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -112,6 +117,108 @@ class HomePage extends StatelessWidget {
     Navigator.pushNamed(context, '/login');
   }
 
+  Future<void> connect(BuildContext context) async {
+    print('about to exec');
+    debugPrint("Connecting...");
+    try {
+      print('execing');
+      showDialog(
+        context: context,
+        builder: (context) {
+          return const AlertDialog(
+            title: Text("LOADING"),
+            content: CircularProgressIndicator(),
+          );
+        },
+      );
+      final conn = await MySqlConnection.connect(ConnectionSettings(
+          host: 'db-mysql-fra1-itmda-do-user-14181038-0.b.db.ondigitalocean.com',
+          port: 25060,
+          user: 'doadmin',
+          db: 'g2gsystemdata',
+          password: 'AVNS_x9MsCEPSYvujay1CtiH'));
+      debugPrint("Connected!");
+
+      var result = await conn.query(
+          'INSERT INTO EMPLOYEE (empID, f_name, l_name, isManager, department, email, password) values (1041, \'Emma1234\', \'Walker1\', 1, \'Marketing1\', \'em1ma.walker@example.com\', \'passw1ord10\')'
+      );
+      print('Inserted row id=${result.insertId}');
+    } catch (e) {
+      debugPrint(e.toString());
+      print(e.toString());
+    } finally {
+      Navigator.pop(context);
+    }
+  }
+
+  Future<void> delete(BuildContext context) async {
+    print('about to exec');
+    debugPrint("Connecting...");
+    try {
+      print('execing');
+      showDialog(
+        context: context,
+        builder: (context) {
+          return const AlertDialog(
+            title: Text("LOADING"),
+            content: CircularProgressIndicator(),
+          );
+        },
+      );
+      final conn = await MySqlConnection.connect(ConnectionSettings(
+          host: 'db-mysql-fra1-itmda-do-user-14181038-0.b.db.ondigitalocean.com',
+          port: 25060,
+          user: 'doadmin',
+          db: 'g2gsystemdata',
+          password: 'AVNS_x9MsCEPSYvujay1CtiH'));
+      debugPrint("Connected!");
+
+      var result = await conn.query(
+          'DELETE FROM EMPLOYEE WHERE empID = 1041'
+      );
+      print('Deleted row id=${result.insertId}');
+    } catch (e) {
+      debugPrint(e.toString());
+      print(e.toString());
+    } finally {
+      Navigator.pop(context);
+    }
+  }
+
+  Future<void> read(BuildContext context) async {
+    print('about to exec');
+    debugPrint("Connecting...");
+    try {
+      print('execing');
+      showDialog(
+        context: context,
+        builder: (context) {
+          return const AlertDialog(
+            title: Text("LOADING"),
+            content: CircularProgressIndicator(),
+          );
+        },
+      );
+      final conn = await MySqlConnection.connect(ConnectionSettings(
+          host: 'db-mysql-fra1-itmda-do-user-14181038-0.b.db.ondigitalocean.com',
+          port: 25060,
+          user: 'doadmin',
+          db: 'g2gsystemdata',
+          password: 'AVNS_x9MsCEPSYvujay1CtiH'));
+      debugPrint("Connected!");
+
+      var result = await conn.query(
+          'SELECT FROM EMPLOYEE WHERE empID = 1041'
+      );
+      print('Selected row id=${result.insertId}');
+    } catch (e) {
+      debugPrint(e.toString());
+      print(e.toString());
+    } finally {
+      Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -150,6 +257,12 @@ class HomePage extends StatelessWidget {
               onPressed: () => logout(context),
               child: Text('Log Out'),
             ),
+            ElevatedButton(
+                onPressed: () => connect(context),
+                child: const Text("Connect")),
+            ElevatedButton(
+                onPressed: () => delete(context),
+                child: const Text("Delete")),
           ],
         ),
       ),
