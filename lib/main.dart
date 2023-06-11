@@ -19,7 +19,13 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'g2g.db');
 
-    return await openDatabase(path, version: 1, onCreate: _createDatabase);
+    // Delete the existing database file
+    await deleteDatabase(path);
+
+    // Create a new database instance
+    final database = await openDatabase(path, version: 1, onCreate: _createDatabase);
+
+    return database;
   }
 
   static Future<void> _createDatabase(Database db, int version) async {
@@ -42,7 +48,7 @@ class DatabaseHelper {
         timestamp TEXT,
         medal INTEGER,
         yellowCard INTEGER,
-        hygeiene INTEGER,
+        hygiene INTEGER,
         reason TEXT,
         FOREIGN KEY (empID) REFERENCES EMPLOYEE(empID)
       )
@@ -65,7 +71,7 @@ class DatabaseHelper {
     ''');
 
     await db.execute('''
-      INSERT INTO OBSERVATIONS (obsID, empID, timestamp, medal, yellowCard, hygeiene, reason)
+      INSERT INTO OBSERVATIONS (obsID, empID, timestamp, medal, yellowCard, hygiene, reason)
       VALUES
         (1, 1, '2023-06-01 09:30:00', 2, 0, 4, 'Exceeded sales targets'),
         (2, 2, '2023-06-02 14:45:00', 1, 1, 2, 'Provided excellent customer service'),
@@ -81,6 +87,66 @@ class DatabaseHelper {
   }
 }
 
+class Employee {
+  final int empID;
+  final String firstName;
+  final String lastName;
+  final int isManager;
+  final String department;
+  final String email;
+  final String password;
+
+  Employee({
+    required this.empID,
+    required this.firstName,
+    required this.lastName,
+    required this.isManager,
+    required this.department,
+    required this.email,
+    required this.password,
+  });
+
+  factory Employee.fromMap(Map<String, dynamic> map) {
+    return Employee(
+      empID: map['empID'],
+      firstName: map['f_name'],
+      lastName: map['l_name'],
+      isManager: map['isManager'],
+      department: map['department'],
+      email: map['email'],
+      password: map['password'],
+    );
+  }
+}
+
+class Observation {
+  final int empID;
+  final String timestamp;
+  final int medal;
+  final int yellowCard;
+  final int hygiene;
+  final String reason;
+
+  Observation({
+    required this.empID,
+    required this.timestamp,
+    required this.medal,
+    required this.yellowCard,
+    required this.hygiene,
+    required this.reason,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'empID': empID,
+      'timestamp': timestamp,
+      'medal': medal,
+      'yellowCard': yellowCard,
+      'hygiene': hygiene,
+      'reason': reason,
+    };
+  }
+}
 
 Future<void> main() async {
   //await dotenv.load(); // Load the environment variables
@@ -332,12 +398,95 @@ class HomePage extends StatelessWidget {
   }
 }
 
-class MedalSubmissionPage extends StatelessWidget {
+class MedalSubmissionPage extends StatefulWidget {
+  @override
+  _MedalSubmissionPageState createState() => _MedalSubmissionPageState();
+}
+
+
+class _MedalSubmissionPageState extends State<MedalSubmissionPage> {
+  final TextEditingController searchController = TextEditingController();
+  final TextEditingController reasonController = TextEditingController();
+  List<Employee> employees = [];
+  List<Employee> filteredEmployees = [];
+
+  int selectedEmployeeId = -1; // Default value indicating no employee is selected
+
+  @override
+  void initState() {
+    super.initState();
+    fetchEmployees();
+  }
+
+  Future<void> fetchEmployees() async {
+    try {
+      final db = await DatabaseHelper.database;
+      final results = await db.rawQuery('SELECT * FROM EMPLOYEE WHERE isManager = 0');
+      final List<Employee> fetchedEmployees =
+      results.map((row) => Employee.fromMap(row)).toList();
+
+      setState(() {
+        employees = fetchedEmployees;
+        filteredEmployees = fetchedEmployees;
+      });
+    } catch (e) {
+      debugPrint(e.toString());
+      print(e.toString());
+    }
+  }
+
+  void filterEmployees(String searchText) {
+    setState(() {
+      if (searchText.isEmpty) {
+        filteredEmployees = employees;
+      } else {
+        filteredEmployees = employees.where((employee) {
+          final fullName = '${employee.firstName} ${employee.lastName}'.toLowerCase();
+          return fullName.contains(searchText.toLowerCase());
+        }).toList();
+      }
+    });
+  }
+
+  void selectEmployee(int employeeId) {
+    setState(() {
+      selectedEmployeeId = employeeId;
+    });
+  }
+
+  Future<void> submitMedal() async {
+    if (selectedEmployeeId == -1) {
+      // No employee selected
+      return;
+    }
+
+    final timestamp = DateTime.now().toIso8601String();
+    final reason = reasonController.text; // Get the reason from the text field
+
+    final observation = Observation(
+      empID: selectedEmployeeId,
+      timestamp: timestamp,
+      medal: 1, // Assuming a medal value of 1 for simplicity
+      yellowCard: 0, // Assuming a default value of 0 for simplicity
+      hygiene: 0, // Assuming a default value of 0 for simplicity
+      reason: reason, // Replace with the actual reason value
+    );
+
+    try {
+      final db = await DatabaseHelper.database;
+      await db.insert('OBSERVATIONS', observation.toMap());
+      print('Medal submitted successfully!');
+      print(selectedEmployeeId);
+    } catch (e) {
+      debugPrint(e.toString());
+      print(e.toString());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-      ),
+      appBar: AppBar(),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -358,6 +507,8 @@ class MedalSubmissionPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(5.0),
                 ),
                 child: TextField(
+                  controller: searchController,
+                  onChanged: filterEmployees,
                   decoration: InputDecoration(
                     hintText: 'Find Employee',
                     border: InputBorder.none,
@@ -366,35 +517,23 @@ class MedalSubmissionPage extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 16.0),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: DropdownButtonFormField<String>(
-                      decoration: InputDecoration(
-                        labelText: 'Select Medal',
-                      ),
-                      items: [
-                        DropdownMenuItem<String>(
-                          value: 'gold',
-                          child: Text('Gold'),
-                        ),
-                        DropdownMenuItem<String>(
-                          value: 'silver',
-                          child: Text('Silver'),
-                        ),
-                        DropdownMenuItem<String>(
-                          value: 'bronze',
-                          child: Text('Bronze'),
-                        ),
-                      ],
-                      onChanged: (value) {},
-                    ),
-                  ),
-                  SizedBox(width: 16.0),
-                  Text('Points:', style: TextStyle(color: Colors.black)),
-                ],
+              // Display filtered employees
+              ListView.builder(
+                shrinkWrap: true,
+                itemCount: searchController.text.isEmpty ? 0 : filteredEmployees.length,
+                itemBuilder: (context, index) {
+                  final employee = filteredEmployees[index];
+                  return ListTile(
+                    title: Text('${employee.firstName} ${employee.lastName}'),
+                    subtitle: Text(employee.department),
+                    onTap: () {
+                      selectEmployee(employee.empID);
+                      print('Selected Employee: ${employee.firstName} ${employee.empID}');
+                    },
+                  );
+                },
               ),
+
               SizedBox(height: 16.0),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -415,7 +554,7 @@ class MedalSubmissionPage extends StatelessWidget {
               Align(
                 alignment: Alignment.bottomRight,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: submitMedal,
                   child: Text('Submit'),
                 ),
               ),
@@ -426,6 +565,7 @@ class MedalSubmissionPage extends StatelessWidget {
     );
   }
 }
+
 
 class YellowCardPage extends StatelessWidget {
   @override
