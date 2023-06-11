@@ -718,6 +718,7 @@ class _YellowCardPageState extends State<YellowCardPage> {
   List<Employee> filteredEmployees = [];
 
   int selectedEmployeeId = -1; // Default value indicating no employee is selected
+  bool employeeSelected = false; // Flag to track if an employee has been selected
 
   @override
   void initState() {
@@ -758,6 +759,7 @@ class _YellowCardPageState extends State<YellowCardPage> {
   void selectEmployee(int employeeId) {
     setState(() {
       selectedEmployeeId = employeeId;
+      employeeSelected = true; // Set the flag to true when an employee is selected
     });
   }
 
@@ -825,21 +827,26 @@ class _YellowCardPageState extends State<YellowCardPage> {
               ),
               SizedBox(height: 16.0),
               // Display filtered employees
-              ListView.builder(
-                shrinkWrap: true,
-                itemCount: searchController.text.isEmpty ? 0 : filteredEmployees.length,
-                itemBuilder: (context, index) {
-                  final employee = filteredEmployees[index];
-                  return ListTile(
-                    title: Text('${employee.firstName} ${employee.lastName}'),
-                    subtitle: Text(employee.department),
-                    onTap: () {
-                      selectEmployee(employee.empID);
-                      print('Selected Employee: ${employee.firstName} ${employee.empID}');
-                    },
-                  );
-                },
-              ),
+              if (!employeeSelected)
+                ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: searchController.text.isEmpty ? 0 : filteredEmployees.length,
+                  itemBuilder: (context, index) {
+                    final employee = filteredEmployees[index];
+                    return ListTile(
+                      title: Text('${employee.firstName} ${employee.lastName}'),
+                      subtitle: Text(employee.department),
+                      onTap: () {
+                        selectEmployee(employee.empID);
+                        setState(() {
+                          searchController.text = '${employee.firstName} ${employee.lastName}';
+                          employeeSelected = true; // Set the flag to true when an employee is selected
+                        });
+                        print('Selected Employee: ${employee.firstName} ${employee.empID}');
+                      },
+                    );
+                  },
+                ),
               SizedBox(height: 16.0),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -890,6 +897,7 @@ class _HygieneSubmissionPageState extends State<HygieneSubmissionPage> {
 
   int selectedEmployeeId = -1; // Default value indicating no employee is selected
   int selectedHygienePoints = 0; // Default value indicating no hygiene points selected
+  bool employeeSelected = false; // Flag to track if an employee has been selected
 
   @override
   void initState() {
@@ -930,6 +938,12 @@ class _HygieneSubmissionPageState extends State<HygieneSubmissionPage> {
   void selectEmployee(int employeeId) {
     setState(() {
       selectedEmployeeId = employeeId;
+      employeeSelected = true; // Set the flag to true when an employee is selected
+
+      // Populate the search box with the name and surname of the selected employee
+      final selectedEmployee = employees.firstWhere((employee) => employee.empID == employeeId);
+      final fullName = '${selectedEmployee.firstName} ${selectedEmployee.lastName}';
+      searchController.text = fullName;
     });
   }
 
@@ -1004,21 +1018,22 @@ class _HygieneSubmissionPageState extends State<HygieneSubmissionPage> {
               ),
               SizedBox(height: 16.0),
               // Display filtered employees
-              ListView.builder(
-                shrinkWrap: true,
-                itemCount: searchController.text.isEmpty ? 0 : filteredEmployees.length,
-                itemBuilder: (context, index) {
-                  final employee = filteredEmployees[index];
-                  return ListTile(
-                    title: Text('${employee.firstName} ${employee.lastName}'),
-                    subtitle: Text(employee.department),
-                    onTap: () {
-                      selectEmployee(employee.empID);
-                      print('Selected Employee: ${employee.firstName} ${employee.empID}');
-                    },
-                  );
-                },
-              ),
+              if (!employeeSelected)
+                ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: searchController.text.isEmpty ? 0 : filteredEmployees.length,
+                  itemBuilder: (context, index) {
+                    final employee = filteredEmployees[index];
+                    return ListTile(
+                      title: Text('${employee.firstName} ${employee.lastName}'),
+                      subtitle: Text(employee.department),
+                      onTap: () {
+                        selectEmployee(employee.empID);
+                        print('Selected Employee: ${employee.firstName} ${employee.empID}');
+                      },
+                    );
+                  },
+                ),
               SizedBox(height: 16.0),
               Row(
                 children: [
@@ -1090,6 +1105,7 @@ class _HygieneSubmissionPageState extends State<HygieneSubmissionPage> {
     );
   }
 }
+
 
 
 class LeaderboardPage extends StatefulWidget {
