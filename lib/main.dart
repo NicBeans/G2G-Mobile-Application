@@ -221,8 +221,28 @@ class LoginPage extends StatelessWidget {
     ''', [emailController.text, passwordController.text]);
 
       if (employees.isNotEmpty) {
-        // Authentication successful
-        Navigator.pushNamed(context, '/home');
+        final employee = Employee.fromMap(employees.first);
+        if (employee.isManager == 1) {
+          // Authentication successful for manager
+          Navigator.pushNamed(context, '/home');
+        } else {
+          // Authentication failed for non-manager
+          showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: Text("Insufficient Permissions"),
+                content: Text("You do not have sufficient permissions to log in."),
+                actions: [
+                  TextButton(
+                    child: Text("OK"),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              );
+            },
+          );
+        }
       } else {
         // Authentication failed
         showDialog(
@@ -246,6 +266,7 @@ class LoginPage extends StatelessWidget {
       print(e.toString());
     }
   }
+
 
 
   @override
@@ -511,8 +532,6 @@ class MedalSubmissionPage extends StatefulWidget {
   @override
   _MedalSubmissionPageState createState() => _MedalSubmissionPageState();
 }
-
-
 class _MedalSubmissionPageState extends State<MedalSubmissionPage> {
   final TextEditingController searchController = TextEditingController();
   final TextEditingController reasonController = TextEditingController();
@@ -520,6 +539,7 @@ class _MedalSubmissionPageState extends State<MedalSubmissionPage> {
   List<Employee> filteredEmployees = [];
 
   int selectedEmployeeId = -1; // Default value indicating no employee is selected
+  bool employeeSelected = false; // Flag to track if an employee has been selected
 
   @override
   void initState() {
@@ -560,8 +580,11 @@ class _MedalSubmissionPageState extends State<MedalSubmissionPage> {
   void selectEmployee(int employeeId) {
     setState(() {
       selectedEmployeeId = employeeId;
+      employeeSelected = true; // Set the flag to true when an employee is selected
     });
   }
+
+
 
   Future<void> submitMedal() async {
     if (selectedEmployeeId == -1) {
@@ -628,7 +651,8 @@ class _MedalSubmissionPageState extends State<MedalSubmissionPage> {
               ),
               SizedBox(height: 16.0),
               // Display filtered employees
-              ListView.builder(
+              if (!employeeSelected)
+                ListView.builder(
                 shrinkWrap: true,
                 itemCount: searchController.text.isEmpty ? 0 : filteredEmployees.length,
                 itemBuilder: (context, index) {
@@ -638,11 +662,13 @@ class _MedalSubmissionPageState extends State<MedalSubmissionPage> {
                     subtitle: Text(employee.department),
                     onTap: () {
                       selectEmployee(employee.empID);
+                      searchController.text = '${employee.firstName} ${employee.lastName}';
                       print('Selected Employee: ${employee.firstName} ${employee.empID}');
                     },
                   );
                 },
               ),
+
 
               SizedBox(height: 16.0),
               Container(
