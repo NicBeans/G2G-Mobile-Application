@@ -750,7 +750,7 @@ class _MedalSubmissionPageState extends State<MedalSubmissionPage> {
                 child: ElevatedButton(
                   onPressed: () {
                     submitMedal();
-                    Navigator.pushNamed(context, '/home');
+                    Navigator.pushReplacementNamed(context, '/home');
                   },
                   child: Text('Submit'),
                 ),
@@ -928,7 +928,7 @@ class _YellowCardPageState extends State<YellowCardPage> {
                 child: ElevatedButton(
                   onPressed: () {
                     submitYellowCard();
-                    Navigator.pushNamed(context, '/home');
+                    Navigator.pushReplacementNamed(context, '/home');
                   },
                   child: Text('Submit'),
                 ),
@@ -1151,7 +1151,7 @@ class _HygieneSubmissionPageState extends State<HygieneSubmissionPage> {
                 child: ElevatedButton(
                   onPressed: () {
                     submitHygieneAchievement();
-                    Navigator.pushNamed(context, '/home');
+                    Navigator.pushReplacementNamed(context, '/home');
                   },
                   child: Text('Submit'),
                 ),
