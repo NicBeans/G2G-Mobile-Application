@@ -136,6 +136,17 @@ class Observation {
     required this.reason,
   });
 
+  factory Observation.fromMap(Map<String, dynamic> map) {
+    return Observation(
+      empID: map['empID'],
+      timestamp: map['timestamp'],
+      medal: map['medal'],
+      yellowCard: map['yellowCard'],
+      hygiene: map['hygiene'],
+      reason: map['reason'],
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'empID': empID,
@@ -148,12 +159,22 @@ class Observation {
   }
 }
 
+
 Future<void> main() async {
   //await dotenv.load(); // Load the environment variables
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  Future<List<Observation>> getObservationsFromDatabase() async {
+    final database = await DatabaseHelper.database;
+
+    final observationData = await database.query('OBSERVATIONS');
+
+    final observations = observationData.map((data) => Observation.fromMap(data)).toList();
+
+    return observations;
+  }
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -169,7 +190,19 @@ class MyApp extends StatelessWidget {
         '/yellow_card': (context) => YellowCardPage(),
         '/hygiene_submission': (context) => HygieneSubmissionPage(),
         '/leaderboard': (context) => LeaderboardPage(),
-        '/observation_log': (context) => ObservationLogPage(),
+    '/observation_log': (context) => FutureBuilder<List<Observation>>(
+    future: getObservationsFromDatabase(),
+    builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+    return CircularProgressIndicator();
+    } else if (snapshot.hasError) {
+    return Text('Error: ${snapshot.error}');
+    } else {
+    final observations = snapshot.data ?? [];
+    return ObservationLogPage(observationEntries: observations);
+    }
+    },
+    ),
       },
     );
   }
@@ -310,7 +343,8 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false, // Remove the back button from the app bar
-        title: Text('Good Morning, Temuso!', style: TextStyle(color: Colors.white)), // Set the text and color for the title
+        title: Text('Hi there!', style: TextStyle(color: Colors.white)), // Set the text and color for the title
+        //need to add employee name here
         centerTitle: true,
       ),
       body: Center(
@@ -552,6 +586,7 @@ class _MedalSubmissionPageState extends State<MedalSubmissionPage> {
       await db.insert('OBSERVATIONS', observation.toMap());
       print('Medal submitted successfully!');
       print(selectedEmployeeId);
+
     } catch (e) {
       debugPrint(e.toString());
       print(e.toString());
@@ -629,7 +664,10 @@ class _MedalSubmissionPageState extends State<MedalSubmissionPage> {
               Align(
                 alignment: Alignment.bottomRight,
                 child: ElevatedButton(
-                  onPressed: submitMedal,
+                  onPressed: () {
+                    submitMedal();
+                    Navigator.pushNamed(context, '/home');
+                  },
                   child: Text('Submit'),
                 ),
               ),
@@ -642,12 +680,94 @@ class _MedalSubmissionPageState extends State<MedalSubmissionPage> {
 }
 
 
-class YellowCardPage extends StatelessWidget {
+class YellowCardPage extends StatefulWidget {
+  @override
+  _YellowCardPageState createState() => _YellowCardPageState();
+}
+
+class _YellowCardPageState extends State<YellowCardPage> {
+  final TextEditingController searchController = TextEditingController();
+  final TextEditingController reasonController = TextEditingController();
+  List<Employee> employees = [];
+  List<Employee> filteredEmployees = [];
+
+  int selectedEmployeeId = -1; // Default value indicating no employee is selected
+
+  @override
+  void initState() {
+    super.initState();
+    fetchEmployees();
+  }
+
+  Future<void> fetchEmployees() async {
+    try {
+      final db = await DatabaseHelper.database;
+      final results = await db.rawQuery('SELECT * FROM EMPLOYEE WHERE isManager = 0');
+      final List<Employee> fetchedEmployees =
+      results.map((row) => Employee.fromMap(row)).toList();
+
+      setState(() {
+        employees = fetchedEmployees;
+        filteredEmployees = fetchedEmployees;
+      });
+    } catch (e) {
+      debugPrint(e.toString());
+      print(e.toString());
+    }
+  }
+
+  void filterEmployees(String searchText) {
+    setState(() {
+      if (searchText.isEmpty) {
+        filteredEmployees = employees;
+      } else {
+        filteredEmployees = employees.where((employee) {
+          final fullName = '${employee.firstName} ${employee.lastName}'.toLowerCase();
+          return fullName.contains(searchText.toLowerCase());
+        }).toList();
+      }
+    });
+  }
+
+  void selectEmployee(int employeeId) {
+    setState(() {
+      selectedEmployeeId = employeeId;
+    });
+  }
+
+  Future<void> submitYellowCard() async {
+    if (selectedEmployeeId == -1) {
+      // No employee selected
+      return;
+    }
+
+    final timestamp = DateTime.now().toIso8601String();
+    final reason = reasonController.text; // Get the reason from the text field
+
+    final observation = Observation(
+      empID: selectedEmployeeId,
+      timestamp: timestamp,
+      medal: 0, // Assuming a default value of 0 for simplicity
+      yellowCard: 1, // Assuming a yellow card value of 1 for simplicity
+      hygiene: 0, // Assuming a default value of 0 for simplicity
+      reason: reason, // Replace with the actual reason value
+    );
+
+    try {
+      final db = await DatabaseHelper.database;
+      await db.insert('OBSERVATIONS', observation.toMap());
+      print('Yellow card submitted successfully!');
+      print(selectedEmployeeId);
+    } catch (e) {
+      debugPrint(e.toString());
+      print(e.toString());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-      ),
+      appBar: AppBar(),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -668,6 +788,8 @@ class YellowCardPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(5.0),
                 ),
                 child: TextField(
+                  controller: searchController,
+                  onChanged: filterEmployees,
                   decoration: InputDecoration(
                     hintText: 'Find Employee',
                     border: InputBorder.none,
@@ -676,34 +798,21 @@ class YellowCardPage extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 16.0),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: DropdownButtonFormField<String>(
-                      decoration: InputDecoration(
-                        labelText: 'Select Yellow Card',
-                      ),
-                      items: [
-                        DropdownMenuItem<String>(
-                          value: '1',
-                          child: Text('1'),
-                        ),
-                        DropdownMenuItem<String>(
-                          value: '2',
-                          child: Text('2'),
-                        ),
-                        DropdownMenuItem<String>(
-                          value: '3',
-                          child: Text('3'),
-                        ),
-                      ],
-                      onChanged: (value) {},
-                    ),
-                  ),
-                  SizedBox(width: 16.0),
-                  Text('Points:', style: TextStyle(color: Colors.black)),
-                ],
+              // Display filtered employees
+              ListView.builder(
+                shrinkWrap: true,
+                itemCount: searchController.text.isEmpty ? 0 : filteredEmployees.length,
+                itemBuilder: (context, index) {
+                  final employee = filteredEmployees[index];
+                  return ListTile(
+                    title: Text('${employee.firstName} ${employee.lastName}'),
+                    subtitle: Text(employee.department),
+                    onTap: () {
+                      selectEmployee(employee.empID);
+                      print('Selected Employee: ${employee.firstName} ${employee.empID}');
+                    },
+                  );
+                },
               ),
               SizedBox(height: 16.0),
               Container(
@@ -714,6 +823,7 @@ class YellowCardPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(5.0),
                 ),
                 child: TextField(
+                  controller: reasonController,
                   maxLines: null,
                   decoration: InputDecoration(
                     labelText: 'Reason for Submission',
@@ -725,7 +835,10 @@ class YellowCardPage extends StatelessWidget {
               Align(
                 alignment: Alignment.bottomRight,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    submitYellowCard();
+                    Navigator.pushNamed(context, '/home');
+                  },
                   child: Text('Submit'),
                 ),
               ),
@@ -737,13 +850,98 @@ class YellowCardPage extends StatelessWidget {
   }
 }
 
+
 class HygieneSubmissionPage extends StatefulWidget {
   @override
   _HygieneSubmissionPageState createState() => _HygieneSubmissionPageState();
 }
 
 class _HygieneSubmissionPageState extends State<HygieneSubmissionPage> {
-  String selectedButton = " ";
+  final TextEditingController searchController = TextEditingController();
+  final TextEditingController reasonController = TextEditingController();
+  List<Employee> employees = [];
+  List<Employee> filteredEmployees = [];
+
+  int selectedEmployeeId = -1; // Default value indicating no employee is selected
+  int selectedHygienePoints = 0; // Default value indicating no hygiene points selected
+
+  @override
+  void initState() {
+    super.initState();
+    fetchEmployees();
+  }
+
+  Future<void> fetchEmployees() async {
+    try {
+      final db = await DatabaseHelper.database;
+      final results = await db.rawQuery('SELECT * FROM EMPLOYEE WHERE isManager = 0');
+      final List<Employee> fetchedEmployees =
+      results.map((row) => Employee.fromMap(row)).toList();
+
+      setState(() {
+        employees = fetchedEmployees;
+        filteredEmployees = fetchedEmployees;
+      });
+    } catch (e) {
+      debugPrint(e.toString());
+      print(e.toString());
+    }
+  }
+
+  void filterEmployees(String searchText) {
+    setState(() {
+      if (searchText.isEmpty) {
+        filteredEmployees = employees;
+      } else {
+        filteredEmployees = employees.where((employee) {
+          final fullName = '${employee.firstName} ${employee.lastName}'.toLowerCase();
+          return fullName.contains(searchText.toLowerCase());
+        }).toList();
+      }
+    });
+  }
+
+  void selectEmployee(int employeeId) {
+    setState(() {
+      selectedEmployeeId = employeeId;
+    });
+  }
+
+  void selectHygienePoints(int points) {
+    setState(() {
+      selectedHygienePoints = points;
+    });
+  }
+
+  Future<void> submitHygieneAchievement() async {
+    if (selectedEmployeeId == -1 || selectedHygienePoints == 0) {
+      // No employee selected or no hygiene points selected
+      return;
+    }
+
+    final timestamp = DateTime.now().toIso8601String();
+    final reason = reasonController.text; // Get the reason from the text field
+    final hygienePoints = selectedHygienePoints;
+
+    final observation = Observation(
+      empID: selectedEmployeeId,
+      timestamp: timestamp,
+      medal: 0, // Assuming a default value of 0 for simplicity
+      yellowCard: 0, // Assuming a default value of 0 for simplicity
+      hygiene: hygienePoints, // Replace with the actual hygiene points value
+      reason: reason, // Replace with the actual reason value
+    );
+
+    try {
+      final db = await DatabaseHelper.database;
+      await db.insert('OBSERVATIONS', observation.toMap());
+      print('Hygiene achievement submitted successfully!');
+      print(selectedEmployeeId);
+    } catch (e) {
+      debugPrint(e.toString());
+      print(e.toString());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -769,6 +967,8 @@ class _HygieneSubmissionPageState extends State<HygieneSubmissionPage> {
                   borderRadius: BorderRadius.circular(5.0),
                 ),
                 child: TextField(
+                  controller: searchController,
+                  onChanged: filterEmployees,
                   decoration: InputDecoration(
                     hintText: 'Find Employee',
                     border: InputBorder.none,
@@ -777,77 +977,55 @@ class _HygieneSubmissionPageState extends State<HygieneSubmissionPage> {
                 ),
               ),
               SizedBox(height: 16.0),
+              // Display filtered employees
+              ListView.builder(
+                shrinkWrap: true,
+                itemCount: searchController.text.isEmpty ? 0 : filteredEmployees.length,
+                itemBuilder: (context, index) {
+                  final employee = filteredEmployees[index];
+                  return ListTile(
+                    title: Text('${employee.firstName} ${employee.lastName}'),
+                    subtitle: Text(employee.department),
+                    onTap: () {
+                      selectEmployee(employee.empID);
+                      print('Selected Employee: ${employee.firstName} ${employee.empID}');
+                    },
+                  );
+                },
+              ),
+              SizedBox(height: 16.0),
               Row(
                 children: [
                   Expanded(
                     flex: 2,
-                    child: DropdownButtonFormField<String>(
+                    child: DropdownButtonFormField<int>(
                       decoration: InputDecoration(
                         labelText: 'Select Hygiene Category',
                       ),
                       items: [
-                        DropdownMenuItem<String>(
-                          value: '1',
-                          child: Text('1'),
+                        DropdownMenuItem<int>(
+                          value: -1,
+                          child: Text('Poor'),
                         ),
-                        DropdownMenuItem<String>(
-                          value: '2',
-                          child: Text('2'),
+                        DropdownMenuItem<int>(
+                          value: 1,
+                          child: Text('Standard'),
                         ),
-                        DropdownMenuItem<String>(
-                          value: '3',
-                          child: Text('3'),
+                        DropdownMenuItem<int>(
+                          value: 2,
+                          child: Text('Excellent'),
                         ),
                       ],
-                      onChanged: (value) {},
+                      onChanged: (value) {
+                        selectHygienePoints(value ?? 0);
+                      },
                     ),
                   ),
                   SizedBox(width: 16.0),
                   Text('Points:', style: TextStyle(color: Colors.black)),
-                ],
-              ),
-              SizedBox(height: 16.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        selectedButton = 'POOR';
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      primary: selectedButton == 'POOR'
-                          ? Colors.redAccent
-                          : Colors.transparent,
-                    ),
-                    child: Text('POOR'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        selectedButton = 'STANDARD';
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      primary: selectedButton == 'STANDARD'
-                          ? Colors.orangeAccent
-                          : Colors.transparent,
-                    ),
-                    child: Text('STANDARD'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        selectedButton = 'EXCELLENT';
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      primary: selectedButton == 'EXCELLENT'
-                          ? Colors.green
-                          : Colors.transparent,
-                    ),
-                    child: Text('EXCELLENT'),
+                  Text(
+                    selectedHygienePoints.toString(),
+                    style: TextStyle(color: Colors.black),
                   ),
                 ],
               ),
@@ -860,6 +1038,7 @@ class _HygieneSubmissionPageState extends State<HygieneSubmissionPage> {
                   borderRadius: BorderRadius.circular(5.0),
                 ),
                 child: TextField(
+                  controller: reasonController,
                   maxLines: null,
                   decoration: InputDecoration(
                     labelText: 'Reason for Submission',
@@ -871,7 +1050,10 @@ class _HygieneSubmissionPageState extends State<HygieneSubmissionPage> {
               Align(
                 alignment: Alignment.bottomRight,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    submitHygieneAchievement();
+                    Navigator.pushNamed(context, '/home');
+                  },
                   child: Text('Submit'),
                 ),
               ),
@@ -883,40 +1065,117 @@ class _HygieneSubmissionPageState extends State<HygieneSubmissionPage> {
   }
 }
 
-class LeaderboardPage extends StatelessWidget {
+
+class LeaderboardPage extends StatefulWidget {
+  @override
+  _LeaderboardPageState createState() => _LeaderboardPageState();
+}
+
+class _LeaderboardPageState extends State<LeaderboardPage> {
+  List<Employee> employees = [];
+  List<Observation> observations = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchEmployees();
+    fetchObservations();
+  }
+
+  void fetchEmployees() async {
+    final database = await DatabaseHelper.database;
+    final List<Map<String, dynamic>> employeeMaps = await database.query('EMPLOYEE');
+
+    final List<Employee> employeeList = employeeMaps.map((map) => Employee.fromMap(map)).toList();
+
+    setState(() {
+      employees = employeeList;
+    });
+  }
+
+  void fetchObservations() async {
+    final database = await DatabaseHelper.database;
+    final List<Map<String, dynamic>> observationMaps = await database.query('OBSERVATIONS');
+
+    final List<Observation> observationList = observationMaps.map((map) => Observation.fromMap(map)).toList();
+
+    setState(() {
+      observations = observationList;
+    });
+  }
+
+
+  List<LeaderboardEntry> calculateLeaderboard() {
+    Map<int, int> totalPointsMap = {};
+
+    for (final observation in observations) {
+      final int empID = observation.empID;
+      final int medals = observation.medal;
+      final int yellowCards = observation.yellowCard;
+      final int hygiene = observation.hygiene;
+
+      final int points = medals - yellowCards + hygiene;
+
+      totalPointsMap[empID] = (totalPointsMap[empID] ?? 0) + points;
+    }
+
+    List<LeaderboardEntry> leaderboard = [];
+
+    for (final employee in employees) {
+      final int empID = employee.empID;
+      final bool isManager = employee.isManager == 1;
+      final int points = totalPointsMap.containsKey(empID) ? totalPointsMap[empID]! : 0;
+
+      if (!isManager) {
+        leaderboard.add(LeaderboardEntry(employee: employee, points: points));
+      }
+    }
+
+    leaderboard.sort((a, b) => b.points.compareTo(a.points));
+
+    return leaderboard;
+  }
+
+
   @override
   Widget build(BuildContext context) {
+    List<LeaderboardEntry> leaderboard = calculateLeaderboard();
+
     return Scaffold(
       appBar: AppBar(),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-              SizedBox(height: 16.0),
-          Text(
-            'June 2023 Leader Board',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 16.0),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => ObservationLogPage()),
-                  );
-                },
-                child: Text('Observation Log'),
+              SizedBox(height: 16.0),
+              Text(
+                'June 2023 Leader Board',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
               ),
-            ],
-          ),
-          SizedBox(height: 16.0),
-          Table(
+              SizedBox(height: 16.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ObservationLogPage(
+                            observationEntries: observations,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Text('View Observation Log'),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16.0),
+              Table(
                 columnWidths: {
                   0: FlexColumnWidth(2),
                   1: FlexColumnWidth(1),
@@ -958,131 +1217,32 @@ class LeaderboardPage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  TableRow(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
+                  for (int i = 0; i < leaderboard.length; i++)
+                    TableRow(
+                      decoration: BoxDecoration(
+                        color: i % 2 == 0 ? Colors.white : Colors.grey[200],
+                      ),
+                      children: [
+                        TableCell(
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(leaderboard[i].employee.firstName + ' ' + leaderboard[i].employee.lastName),
+                          ),
+                        ),
+                        TableCell(
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text((i + 1).toString()),
+                          ),
+                        ),
+                        TableCell(
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(leaderboard[i].points.toString()),
+                          ),
+                        ),
+                      ],
                     ),
-                    children: [
-                      TableCell(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('John Doe'),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('1'),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('100'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  TableRow(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                    ),
-                    children: [
-                      TableCell(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('Jane Smith'),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('2'),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('90'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  TableRow(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                    ),
-                    children: [
-                      TableCell(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('Alex Johnson'),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('3'),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('85'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  TableRow(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                    ),
-                    children: [
-                      TableCell(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('Sarah Brown'),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('4'),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('80'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  TableRow(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                    ),
-                    children: [
-                      TableCell(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('Michael Wilson'),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('5'),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('75'),
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ],
@@ -1093,9 +1253,23 @@ class LeaderboardPage extends StatelessWidget {
   }
 }
 
+class LeaderboardEntry {
+  final Employee employee;
+  final int points;
+
+  LeaderboardEntry({required this.employee, required this.points});
+}
+
 class ObservationLogPage extends StatelessWidget {
+  final List<Observation> observationEntries;
+
+  const ObservationLogPage({required this.observationEntries});
+
   @override
   Widget build(BuildContext context) {
+    // Sort the observationEntries by timestamp in descending order
+    observationEntries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
     return Scaffold(
       appBar: AppBar(),
       body: Center(
@@ -1111,170 +1285,56 @@ class ObservationLogPage extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 16.0),
-              Table(
-                columnWidths: {
-                  0: FlexColumnWidth(2),
-                  1: FlexColumnWidth(2),
-                  2: FlexColumnWidth(2),
-                  3: FlexColumnWidth(2),
-                },
-                defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                children: [
-                  TableRow(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                    ),
-                    children: [
-                      TableCell(
-                        child: Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Text(
-                            'Date',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: observationEntries.length,
+                  itemBuilder: (context, index) {
+                    final entry = observationEntries[index];
+
+                    return Container(
+                      color: index % 2 == 0 ? Colors.white : Colors.grey[200],
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          // children: [
+                          //   Expanded(
+                          //     flex: 2,
+                          //     child: Text(
+                          //       entry.timestamp,
+                          //       style: TextStyle(fontSize: 12),
+                          //       textAlign: TextAlign.center,
+                          //     ),
+                          //   ),
+                          //   Expanded(
+                          //     flex: 2,
+                          //     child: Text(
+                          //       '${entry.employee.firstName} ${entry.employee.lastName}',
+                          //       style: TextStyle(fontSize: 12),
+                          //       textAlign: TextAlign.center,
+                          //     ),
+                          //   ),
+                          //   Expanded(
+                          //     flex: 2,
+                          //     child: Text(
+                          //       '${entry.manager.firstName} ${entry.manager.lastName}',
+                          //       style: TextStyle(fontSize: 12),
+                          //       textAlign: TextAlign.center,
+                          //     ),
+                          //   ),
+                          //   Expanded(
+                          //     flex: 2,
+                          //     child: Text(
+                          //       entry.type.substring(0, 1),
+                          //       style: TextStyle(fontSize: 12),
+                          //       textAlign: TextAlign.center,
+                          //     ),
+                          //   ),
+                          // ],
                         ),
                       ),
-                      TableCell(
-                        child: Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Text(
-                            'Employee',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Text(
-                            'Manager',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Text(
-                            'Type',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  TableRow(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                    ),
-                    children: [
-                      TableCell(
-                        child: Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Text(
-                            '2023-06-01',
-                            style: TextStyle(fontSize: 12),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Text(
-                            'John Doe',
-                            style: TextStyle(fontSize: 12),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Text(
-                            'Jane Smith',
-                            style: TextStyle(fontSize: 12),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Text(
-                            'M',
-                            style: TextStyle(fontSize: 12),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  TableRow(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                    ),
-                    children: [
-                      TableCell(
-                        child: Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Text(
-                            '2023-06-02',
-                            style: TextStyle(fontSize: 12),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Text(
-                            'Jane Smith',
-                            style: TextStyle(fontSize: 12),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Text(
-                            'John Doe',
-                            style: TextStyle(fontSize: 12),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                      TableCell(
-                        child: Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Text(
-                            'Y/C',
-                            style: TextStyle(fontSize: 12),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  // Additional table rows...
-                ],
+                    );
+                  },
+                ),
               ),
             ],
           ),
