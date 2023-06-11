@@ -180,38 +180,11 @@ class LoginPage extends StatelessWidget {
   final TextEditingController passwordController = TextEditingController();
   final ValueNotifier<bool> rememberMe = ValueNotifier<bool>(false);
 
-  Future<void> loginverification(BuildContext context) async {
-    try {
-      final db = await DatabaseHelper.database;
-      final employees = await db.rawQuery('''
-      SELECT * FROM EMPLOYEE WHERE email = ? AND password = ?
-    ''', [emailController.text, passwordController.text]);
-
-      if (employees.isNotEmpty) {
-        // Authentication successful
-        Navigator.pushNamed(context, '/home');
-      } else {
-        // Authentication failed
-        showDialog(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              title: Text("Error"),
-              content: Text("Invalid credentials"),
-              actions: [
-                TextButton(
-                  child: Text("OK"),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            );
-          },
-        );
-      }
-    } catch (e) {
-      debugPrint(e.toString());
-      print(e.toString());
-    }
+  void login(BuildContext context) {
+    // Perform login authentication logic here
+    // You can check the email and password entered by the user
+    // and navigate to the home page if the authentication is successful
+    Navigator.pushNamed(context, '/home');
   }
 
   @override
@@ -329,46 +302,120 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/medal_submission');
-                },
-                style: ElevatedButton.styleFrom(
-                  primary: Colors.green, // Set the button color to green
-                  padding: EdgeInsets.all(16.0), // Add padding to the button
-                ),
-                child: Text(
-                  'Medals',
-                  style: TextStyle(fontSize: 20), // Increase the font size
-                ),
-              ),
-              SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/yellow_card');
-                },
-                style: ElevatedButton.styleFrom(
-                  primary: Colors.yellow, // Set the button color to yellow
-                  padding: EdgeInsets.all(16.0), // Add padding to the button
-                ),
-                child: Text(
-                  'Yellow Card',
-                  style: TextStyle(fontSize: 20), // Increase the font size
-                ),
-              ),
-              SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/hygiene_submission');
-                },
-                style: ElevatedButton.styleFrom(
-                  primary: Colors.red, // Set the button color to red
-                  padding: EdgeInsets.all(16.0), // Add padding to the button
-                ),
-                child: Text(
-                  'Hygiene',
-                  style: TextStyle(fontSize: 20), // Increase the font size
+              Expanded(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/medal_submission');
+                        },
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.green, // Set the button color to green
+                          padding: EdgeInsets.all(16.0), // Add padding to the button
+                          minimumSize: Size(double.infinity, 0), // Make the button width as wide as the screen
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Text(
+                              'Medals',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                foreground: Paint()
+                                  ..style = PaintingStyle.stroke
+                                  ..strokeWidth = 2
+                                  ..color = Colors.black,
+                              ),
+                            ),
+                            Text(
+                              'Medals',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 16.0),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/yellow_card');
+                        },
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.yellow, // Set the button color to yellow
+                          padding: EdgeInsets.all(16.0), // Add padding to the button
+                          minimumSize: Size(double.infinity, 0), // Make the button width as wide as the screen
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Text(
+                              'Yellow Card',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                foreground: Paint()
+                                  ..style = PaintingStyle.stroke
+                                  ..strokeWidth = 2
+                                  ..color = Colors.black,
+                              ),
+                            ),
+                            Text(
+                              'Yellow Card',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 16.0),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/hygiene_submission');
+                        },
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.red, // Set the button color to red
+                          padding: EdgeInsets.all(16.0), // Add padding to the button
+                          minimumSize: Size(double.infinity, 0), // Make the button width as wide as the screen
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Text(
+                              'Hygiene',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                foreground: Paint()
+                                  ..style = PaintingStyle.stroke
+                                  ..strokeWidth = 2
+                                  ..color = Colors.black,
+                              ),
+                            ),
+                            Text(
+                              'Hygiene',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Spacer(),
