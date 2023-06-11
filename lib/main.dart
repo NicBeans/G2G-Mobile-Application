@@ -1,8 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:mysql1/mysql1.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+
+class SessionManager {
+  static const String isLoggedInKey = 'isLoggedIn';
+
+  static Future<void> setLoggedIn(bool isLoggedIn) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(isLoggedInKey, isLoggedIn);
+  }
+
+  static Future<bool> isLoggedIn() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(isLoggedInKey) ?? false;
+  }
+}
+
 
 class DatabaseHelper {
   static Database? _database;
@@ -20,7 +35,7 @@ class DatabaseHelper {
     final path = join(dbPath, 'g2g.db');
 
     // Delete the existing database file
-    await deleteDatabase(path);
+    //await deleteDatabase(path);
 
     // Create a new database instance
     final database = await openDatabase(path, version: 1, onCreate: _createDatabase);
@@ -161,7 +176,6 @@ class Observation {
 
 
 Future<void> main() async {
-  //await dotenv.load(); // Load the environment variables
   runApp(MyApp());
 }
 
@@ -171,10 +185,12 @@ class MyApp extends StatelessWidget {
 
     final observationData = await database.query('OBSERVATIONS');
 
-    final observations = observationData.map((data) => Observation.fromMap(data)).toList();
+    final observations = observationData.map((data) =>
+        Observation.fromMap(data)).toList();
 
     return observations;
   }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -190,23 +206,65 @@ class MyApp extends StatelessWidget {
         '/yellow_card': (context) => YellowCardPage(),
         '/hygiene_submission': (context) => HygieneSubmissionPage(),
         '/leaderboard': (context) => LeaderboardPage(),
-    '/observation_log': (context) => FutureBuilder<List<Observation>>(
-    future: getObservationsFromDatabase(),
-    builder: (context, snapshot) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
-    return CircularProgressIndicator();
-    } else if (snapshot.hasError) {
-    return Text('Error: ${snapshot.error}');
-    } else {
-    final observations = snapshot.data ?? [];
-    return ObservationLogPage(observationEntries: observations);
-    }
-    },
-    ),
+        '/observation_log': (context) =>
+            FutureBuilder<List<Observation>>(
+              future: getObservationsFromDatabase(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return CircularProgressIndicator();
+                } else if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}');
+                } else {
+                  final observations = snapshot.data ?? [];
+                  return ObservationLogPage(observationEntries: observations);
+                }
+              },
+            ),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == '/login') {
+          return MaterialPageRoute(builder: (context) => LoginPage());
+        }
+        return null;
+      },
+      onUnknownRoute: (settings) {
+        return MaterialPageRoute(builder: (context) => LoginPage());
       },
     );
   }
 }
+
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       title: 'Observation App',
+//       theme: ThemeData(
+//         primarySwatch: Colors.blue,
+//       ),
+//       initialRoute: '/login',
+//       routes: {
+//         '/login': (context) => LoginPage(),
+//         '/home': (context) => HomePage(),
+//         '/medal_submission': (context) => MedalSubmissionPage(),
+//         '/yellow_card': (context) => YellowCardPage(),
+//         '/hygiene_submission': (context) => HygieneSubmissionPage(),
+//         '/leaderboard': (context) => LeaderboardPage(),
+//     '/observation_log': (context) => FutureBuilder<List<Observation>>(
+//     future: getObservationsFromDatabase(),
+//     builder: (context, snapshot) {
+//     if (snapshot.connectionState == ConnectionState.waiting) {
+//     return CircularProgressIndicator();
+//     } else if (snapshot.hasError) {
+//     return Text('Error: ${snapshot.error}');
+//     } else {
+//     final observations = snapshot.data ?? [];
+//     return ObservationLogPage(observationEntries: observations);
+//     }
+//     },
+//     ),
+//       },
+//     );
+//   }
+// }
 
 class LoginPage extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
@@ -224,7 +282,7 @@ class LoginPage extends StatelessWidget {
         final employee = Employee.fromMap(employees.first);
         if (employee.isManager == 1) {
           // Authentication successful for manager
-          Navigator.pushNamed(context, '/home');
+          Navigator.pushReplacementNamed(context, '/home');
         } else {
           // Authentication failed for non-manager
           showDialog(
@@ -356,7 +414,7 @@ class LoginPage extends StatelessWidget {
 class HomePage extends StatelessWidget {
   void logout(BuildContext context) {
     // Perform logout logic here
-    Navigator.pushNamed(context, '/login');
+    Navigator.pushReplacementNamed(context, '/login');
   }
 
   @override

@@ -30,9 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  mysql1:
   sqflite:
-  flutter_dotenv: 5.0.0
+  shared_preferences:
   path:
 
 
