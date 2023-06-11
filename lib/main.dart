@@ -180,12 +180,40 @@ class LoginPage extends StatelessWidget {
   final TextEditingController passwordController = TextEditingController();
   final ValueNotifier<bool> rememberMe = ValueNotifier<bool>(false);
 
-  void login(BuildContext context) {
-    // Perform login authentication logic here
-    // You can check the email and password entered by the user
-    // and navigate to the home page if the authentication is successful
-    Navigator.pushNamed(context, '/home');
+  Future<void> loginverification(BuildContext context) async {
+    try {
+      final db = await DatabaseHelper.database;
+      final employees = await db.rawQuery('''
+      SELECT * FROM EMPLOYEE WHERE email = ? AND password = ?
+    ''', [emailController.text, passwordController.text]);
+
+      if (employees.isNotEmpty) {
+        // Authentication successful
+        Navigator.pushNamed(context, '/home');
+      } else {
+        // Authentication failed
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text("Error"),
+              content: Text("Invalid credentials"),
+              actions: [
+                TextButton(
+                  child: Text("OK"),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } catch (e) {
+      debugPrint(e.toString());
+      print(e.toString());
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {
