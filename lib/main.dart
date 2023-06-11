@@ -1,86 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mysql1/mysql1.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-
-class DatabaseHelper {
-  static Database? _database;
-
-  static Future<Database> get database async {
-    if (_database != null) return _database!;
-
-    // If _database is null, initialize it
-    _database = await _initDatabase();
-    return _database!;
-  }
-
-  static Future<Database> _initDatabase() async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'g2g.db');
-
-    return await openDatabase(path, version: 1, onCreate: _createDatabase);
-  }
-
-  static Future<void> _createDatabase(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE EMPLOYEE (
-        empID INTEGER PRIMARY KEY,
-        f_name TEXT,
-        l_name TEXT,
-        isManager INTEGER,
-        department TEXT,
-        email TEXT,
-        password TEXT
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE OBSERVATIONS (
-        obsID INTEGER PRIMARY KEY,
-        empID INTEGER,
-        timestamp TEXT,
-        medal INTEGER,
-        yellowCard INTEGER,
-        hygeiene INTEGER,
-        reason TEXT,
-        FOREIGN KEY (empID) REFERENCES EMPLOYEE(empID)
-      )
-    ''');
-
-    // Insert template data
-    await db.execute('''
-      INSERT INTO EMPLOYEE (empID, f_name, l_name, isManager, department, email, password)
-      VALUES
-        (1, 'John', 'Doe', 0, 'Sales', 'john.doe@example.com', 'password1'),
-        (2, 'Jane', 'Smith', 1, 'HR', 'jane.smith@example.com', 'password2'),
-        (3, 'Michael', 'Johnson', 0, 'IT', 'michael.johnson@example.com', 'password3'),
-        (4, 'Emily', 'Davis', 0, 'Finance', 'emily.davis@example.com', 'password4'),
-        (5, 'Robert', 'Wilson', 0, 'Marketing', 'robert.wilson@example.com', 'password5'),
-        (6, 'Sophia', 'Brown', 1, 'Operations', 'sophia.brown@example.com', 'password6'),
-        (7, 'David', 'Anderson', 0, 'Sales', 'david.anderson@example.com', 'password7'),
-        (8, 'Olivia', 'Taylor', 0, 'IT', 'olivia.taylor@example.com', 'password8'),
-        (9, 'James', 'Clark', 0, 'Finance', 'james.clark@example.com', 'password9'),
-        (10, 'Emma', 'Walker', 0, 'Marketing', 'emma.walker@example.com', 'password10')
-    ''');
-
-    await db.execute('''
-      INSERT INTO OBSERVATIONS (obsID, empID, timestamp, medal, yellowCard, hygeiene, reason)
-      VALUES
-        (1, 1, '2023-06-01 09:30:00', 2, 0, 4, 'Exceeded sales targets'),
-        (2, 2, '2023-06-02 14:45:00', 1, 1, 2, 'Provided excellent customer service'),
-        (3, 3, '2023-06-03 11:15:00', 0, 0, 3, 'Resolved IT issues promptly'),
-        (4, 4, '2023-06-04 16:20:00', 1, 0, 1, 'Ensured accurate financial reporting'),
-        (5, 5, '2023-06-05 13:00:00', 0, 2, 2, 'Implemented successful marketing campaign'),
-        (6, 6, '2023-06-01 10:00:00', 3, 0, 5, 'Streamlined operations processes'),
-        (7, 7, '2023-06-02 15:30:00', 1, 0, 1, 'Closed significant sales deal'),
-        (8, 8, '2023-06-03 12:45:00', 0, 1, 3, 'Maintained IT security protocols'),
-        (9, 9, '2023-06-04 17:10:00', 0, 0, 2, 'Analyzed financial data accurately'),
-        (10, 10, '2023-06-05 14:15:00', 1, 1, 4, 'Developed effective marketing strategy')
-    ''');
-  }
-}
-
 
 Future<void> main() async {
   //await dotenv.load(); // Load the environment variables
@@ -114,38 +35,11 @@ class LoginPage extends StatelessWidget {
   final TextEditingController passwordController = TextEditingController();
   final ValueNotifier<bool> rememberMe = ValueNotifier<bool>(false);
 
-  Future<void> loginverification(BuildContext context) async {
-    try {
-      final db = await DatabaseHelper.database;
-      final employees = await db.rawQuery('''
-      SELECT * FROM EMPLOYEE WHERE email = ? AND password = ?
-    ''', [emailController.text, passwordController.text]);
-
-      if (employees.isNotEmpty) {
-        // Authentication successful
-        Navigator.pushNamed(context, '/home');
-      } else {
-        // Authentication failed
-        showDialog(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              title: Text("Error"),
-              content: Text("Invalid credentials"),
-              actions: [
-                TextButton(
-                  child: Text("OK"),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            );
-          },
-        );
-      }
-    } catch (e) {
-      debugPrint(e.toString());
-      print(e.toString());
-    }
+  void login(BuildContext context) {
+    // Perform login authentication logic here
+    // You can check the email and password entered by the user
+    // and navigate to the home page if the authentication is successful
+    Navigator.pushNamed(context, '/home');
   }
 
   @override
@@ -221,7 +115,7 @@ class LoginPage extends StatelessWidget {
               ),
               SizedBox(height: 16.0),
               ElevatedButton(
-                onPressed: () => loginverification(context),
+                onPressed: () => login(context),
                 child: Text('Login'),
               ),
             ],
@@ -263,46 +157,120 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/medal_submission');
-                },
-                style: ElevatedButton.styleFrom(
-                  primary: Colors.green, // Set the button color to green
-                  padding: EdgeInsets.all(16.0), // Add padding to the button
-                ),
-                child: Text(
-                  'Medals',
-                  style: TextStyle(fontSize: 20), // Increase the font size
-                ),
-              ),
-              SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/yellow_card');
-                },
-                style: ElevatedButton.styleFrom(
-                  primary: Colors.yellow, // Set the button color to yellow
-                  padding: EdgeInsets.all(16.0), // Add padding to the button
-                ),
-                child: Text(
-                  'Yellow Card',
-                  style: TextStyle(fontSize: 20), // Increase the font size
-                ),
-              ),
-              SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/hygiene_submission');
-                },
-                style: ElevatedButton.styleFrom(
-                  primary: Colors.red, // Set the button color to red
-                  padding: EdgeInsets.all(16.0), // Add padding to the button
-                ),
-                child: Text(
-                  'Hygiene',
-                  style: TextStyle(fontSize: 20), // Increase the font size
+              Expanded(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/medal_submission');
+                        },
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.green, // Set the button color to green
+                          padding: EdgeInsets.all(16.0), // Add padding to the button
+                          minimumSize: Size(double.infinity, 0), // Make the button width as wide as the screen
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Text(
+                              'Medals',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                foreground: Paint()
+                                  ..style = PaintingStyle.stroke
+                                  ..strokeWidth = 2
+                                  ..color = Colors.black,
+                              ),
+                            ),
+                            Text(
+                              'Medals',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 16.0),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/yellow_card');
+                        },
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.yellow, // Set the button color to yellow
+                          padding: EdgeInsets.all(16.0), // Add padding to the button
+                          minimumSize: Size(double.infinity, 0), // Make the button width as wide as the screen
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Text(
+                              'Yellow Card',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                foreground: Paint()
+                                  ..style = PaintingStyle.stroke
+                                  ..strokeWidth = 2
+                                  ..color = Colors.black,
+                              ),
+                            ),
+                            Text(
+                              'Yellow Card',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 16.0),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/hygiene_submission');
+                        },
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.red, // Set the button color to red
+                          padding: EdgeInsets.all(16.0), // Add padding to the button
+                          minimumSize: Size(double.infinity, 0), // Make the button width as wide as the screen
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Text(
+                              'Hygiene',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                foreground: Paint()
+                                  ..style = PaintingStyle.stroke
+                                  ..strokeWidth = 2
+                                  ..color = Colors.black,
+                              ),
+                            ),
+                            Text(
+                              'Hygiene',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Spacer(),
