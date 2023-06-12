@@ -294,6 +294,24 @@ class LoginPage extends StatelessWidget {
     }
   }
 
+  void _showForgotPasswordDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Forgot Password"),
+          content: Text("Please email your system administrator for password reset."),
+          actions: [
+            TextButton(
+              child: Text("OK"),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 
 
   @override
@@ -341,22 +359,22 @@ class LoginPage extends StatelessWidget {
               SizedBox(height: 16.0),
               Row(
                 children: [
-                  ValueListenableBuilder<bool>(
-                    valueListenable: rememberMe,
-                    builder: (context, value, child) {
-                      return Checkbox(
-                        value: value,
-                        onChanged: (newValue) {
-                          rememberMe.value = newValue!;
-                        },
-                      );
-                    },
-                  ),
-                  Text('Remember me'),
+                  // ValueListenableBuilder<bool>(
+                  //   valueListenable: rememberMe,
+                  //   builder: (context, value, child) {
+                  //     return Checkbox(
+                  //       value: value,
+                  //       onChanged: (newValue) {
+                  //         rememberMe.value = newValue!;
+                  //       },
+                  //     );
+                  //   },
+                  // ),
+                  // Text('Remember me'),
                   Spacer(), // Add spacer to push the Forgot Password button to the right
                   TextButton(
                     onPressed: () {
-                      // Add your forgot password logic here
+                      _showForgotPasswordDialog(context);
                     },
                     child: Text(
                       'Forgot Password',
@@ -1352,24 +1370,24 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 16.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ObservationLogPage(
-                            observationEntries: observations,
-                          ),
-                        ),
-                      );
-                    },
-                    child: Text('View Observation Log'),
-                  ),
-                ],
-              ),
+              // Row(
+              //   mainAxisAlignment: MainAxisAlignment.end,
+              //   children: [
+              //     ElevatedButton(
+              //       onPressed: () {
+              //         Navigator.push(
+              //           context,
+              //           MaterialPageRoute(
+              //             builder: (context) => ObservationLogPage(
+              //               observationEntries: observations,
+              //             ),
+              //           ),
+              //         );
+              //       },
+              //       child: Text('View Observation Log'),
+              //     ),
+              //   ],
+              // ),
               SizedBox(height: 16.0),
               Table(
                 columnWidths: {
