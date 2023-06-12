@@ -1316,7 +1316,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
     leaderboard.sort((a, b) => b.points.compareTo(a.points));
 
     // Assign ranks to entries with the same score
-    int rank = 1;
+    int rank = 0;
     int prevPoints = -1;
     for (final entry in leaderboard) {
       if (entry.points != prevPoints) {
@@ -1324,10 +1324,6 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
       }
       entry.rank = rank;
       prevPoints = entry.points;
-    }
-    // Adjust ranks to start at 1
-    for (final entry in leaderboard) {
-      entry.rank -= 1;
     }
 
     return leaderboard;
