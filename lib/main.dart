@@ -234,37 +234,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       title: 'Observation App',
-//       theme: ThemeData(
-//         primarySwatch: Colors.blue,
-//       ),
-//       initialRoute: '/login',
-//       routes: {
-//         '/login': (context) => LoginPage(),
-//         '/home': (context) => HomePage(),
-//         '/medal_submission': (context) => MedalSubmissionPage(),
-//         '/yellow_card': (context) => YellowCardPage(),
-//         '/hygiene_submission': (context) => HygieneSubmissionPage(),
-//         '/leaderboard': (context) => LeaderboardPage(),
-//     '/observation_log': (context) => FutureBuilder<List<Observation>>(
-//     future: getObservationsFromDatabase(),
-//     builder: (context, snapshot) {
-//     if (snapshot.connectionState == ConnectionState.waiting) {
-//     return CircularProgressIndicator();
-//     } else if (snapshot.hasError) {
-//     return Text('Error: ${snapshot.error}');
-//     } else {
-//     final observations = snapshot.data ?? [];
-//     return ObservationLogPage(observationEntries: observations);
-//     }
-//     },
-//     ),
-//       },
-//     );
-//   }
-// }
 
 class LoginPage extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
@@ -596,6 +565,7 @@ class _MedalSubmissionPageState extends State<MedalSubmissionPage> {
   List<Employee> employees = [];
   List<Employee> filteredEmployees = [];
 
+  int selectedMedalPoints = 0; // Default value indicating no yellow card points selected
   int selectedEmployeeId = -1; // Default value indicating no employee is selected
   bool employeeSelected = false; // Flag to track if an employee has been selected
 
@@ -652,11 +622,13 @@ class _MedalSubmissionPageState extends State<MedalSubmissionPage> {
 
     final timestamp = DateTime.now().toIso8601String();
     final reason = reasonController.text; // Get the reason from the text field
+    final medalPoints = selectedMedalPoints;
+
 
     final observation = Observation(
       empID: selectedEmployeeId,
       timestamp: timestamp,
-      medal: 1, // Assuming a medal value of 1 for simplicity
+      medal: medalPoints,
       yellowCard: 0, // Assuming a default value of 0 for simplicity
       hygiene: 0, // Assuming a default value of 0 for simplicity
       reason: reason, // Replace with the actual reason value
@@ -727,6 +699,59 @@ class _MedalSubmissionPageState extends State<MedalSubmissionPage> {
                 },
               ),
 
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<int>(
+                      decoration: InputDecoration(
+                        labelText: 'Select Medal Category',
+                      ),
+                      items: [
+                        DropdownMenuItem<int>(
+                          value: 8,
+                          child: Text('Excellent customer service'),
+                        ),
+                        DropdownMenuItem<int>(
+                          value: 6,
+                          child: Text('Teamwork and collaboration'),
+                        ),
+                        DropdownMenuItem<int>(
+                          value: 9,
+                          child: Text('Innovative problem-solving'),
+                        ),
+                        DropdownMenuItem<int>(
+                          value: 3,
+                          child: Text('Attendance and punctuality'),
+                        ),
+                        DropdownMenuItem<int>(
+                          value: 5,
+                          child: Text('Consistent productivity'),
+                        ),
+                        DropdownMenuItem<int>(
+                          value: 2,
+                          child: Text('Positive attitude'),
+                        ),
+                        DropdownMenuItem<int>(
+                          value: 7,
+                          child: Text('Leadership skills'),
+                        )
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          selectedMedalPoints = value ?? 0;
+                        });
+                      },
+                    ),
+                  ),
+                  SizedBox(width: 16.0),
+                  Text('Points:', style: TextStyle(color: Colors.black)),
+                  Text(
+                    selectedMedalPoints.toString(),
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ],
+              ),
 
               SizedBox(height: 16.0),
               Container(
@@ -775,6 +800,7 @@ class _YellowCardPageState extends State<YellowCardPage> {
   List<Employee> employees = [];
   List<Employee> filteredEmployees = [];
 
+  int selectedYellowCardPoints = 0; // Default value indicating no yellow card points selected
   int selectedEmployeeId = -1; // Default value indicating no employee is selected
   bool employeeSelected = false; // Flag to track if an employee has been selected
 
@@ -822,19 +848,20 @@ class _YellowCardPageState extends State<YellowCardPage> {
   }
 
   Future<void> submitYellowCard() async {
-    if (selectedEmployeeId == -1) {
-      // No employee selected
+    if (selectedEmployeeId == -1 || selectedYellowCardPoints == 0) {
+      // No employee selected or no yellow card points selected
       return;
     }
 
     final timestamp = DateTime.now().toIso8601String();
     final reason = reasonController.text; // Get the reason from the text field
+    final yellowCardPoints = selectedYellowCardPoints;
 
     final observation = Observation(
       empID: selectedEmployeeId,
       timestamp: timestamp,
       medal: 0, // Assuming a default value of 0 for simplicity
-      yellowCard: 1, // Assuming a yellow card value of 1 for simplicity
+      yellowCard: yellowCardPoints, // Replace with the actual yellow card points value
       hygiene: 0, // Assuming a default value of 0 for simplicity
       reason: reason, // Replace with the actual reason value
     );
@@ -849,6 +876,7 @@ class _YellowCardPageState extends State<YellowCardPage> {
       print(e.toString());
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -906,6 +934,60 @@ class _YellowCardPageState extends State<YellowCardPage> {
                   },
                 ),
               SizedBox(height: 16.0),
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<int>(
+                      decoration: InputDecoration(
+                        labelText: 'Select Yellow Card Category',
+                      ),
+                      items: [
+                        DropdownMenuItem<int>(
+                          value: 5,
+                          child: Text('Late for work'),
+                        ),
+                        DropdownMenuItem<int>(
+                          value: 2,
+                          child: Text('Failure to follow instructions'),
+                        ),
+                        DropdownMenuItem<int>(
+                          value: 7,
+                          child: Text('Insubordination'),
+                        ),
+                        DropdownMenuItem<int>(
+                          value: 4,
+                          child: Text('Excessive breaks'),
+                        ),
+                        DropdownMenuItem<int>(
+                          value: 1,
+                          child: Text('Poor customer service'),
+                        ),
+                        DropdownMenuItem<int>(
+                          value: 6,
+                          child: Text('Neglecting duties'),
+                        ),
+                        DropdownMenuItem<int>(
+                          value: 3,
+                          child: Text('Unprofessional behavior'),
+                        )
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          selectedYellowCardPoints = value ?? 0;
+                        });
+                      },
+                    ),
+                  ),
+                  SizedBox(width: 16.0),
+                  Text('Points:', style: TextStyle(color: Colors.black)),
+                  Text(
+                    selectedYellowCardPoints.toString(),
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ],
+              ),
+
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 height: 120.0,
