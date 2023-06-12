@@ -1315,8 +1315,26 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
 
     leaderboard.sort((a, b) => b.points.compareTo(a.points));
 
+    // Assign ranks to entries with the same score
+    int rank = 1;
+    int prevPoints = -1;
+    for (final entry in leaderboard) {
+      if (entry.points != prevPoints) {
+        rank++;
+      }
+      entry.rank = rank;
+      prevPoints = entry.points;
+    }
+    // Adjust ranks to start at 1
+    for (final entry in leaderboard) {
+      entry.rank -= 1;
+    }
+
     return leaderboard;
   }
+
+
+
 
 
   @override
@@ -1414,7 +1432,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                         TableCell(
                           child: Padding(
                             padding: const EdgeInsets.all(8.0),
-                            child: Text((i + 1).toString()),
+                            child: Text(leaderboard[i].rank.toString()),
                           ),
                         ),
                         TableCell(
@@ -1425,6 +1443,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                         ),
                       ],
                     ),
+
                 ],
               ),
             ],
@@ -1438,8 +1457,9 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
 class LeaderboardEntry {
   final Employee employee;
   final int points;
+  int rank;
 
-  LeaderboardEntry({required this.employee, required this.points});
+  LeaderboardEntry({required this.employee, required this.points, this.rank = 0});
 }
 
 class ObservationLogPage extends StatelessWidget {
