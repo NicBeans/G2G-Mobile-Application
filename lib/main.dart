@@ -82,7 +82,9 @@ class DatabaseHelper {
         (7, 'David', 'Anderson', 0, 'Sales', 'david.anderson@example.com', 'password7'),
         (8, 'Olivia', 'Taylor', 0, 'IT', 'olivia.taylor@example.com', 'password8'),
         (9, 'James', 'Clark', 0, 'Finance', 'james.clark@example.com', 'password9'),
-        (10, 'Emma', 'Walker', 0, 'Marketing', 'emma.walker@example.com', 'password10')
+        (10, 'Emma', 'Walker', 0, 'Marketing', 'emma.walker@example.com', 'password10'),
+        (11, 'Ndai', 'van Eduvos', 0, 'HR', 'ndai.eduvos@example.com', 'password')
+
     ''');
 
     await db.execute('''
