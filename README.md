@@ -1,16 +1,10 @@
-# g2g_mobile_application
+# Group Mobile Application
 
-G2G-Mobile-Application
+This is a model application to be presented to the client (G2G) upon being finished. 
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+This project is built in flutter, as such, you will need to have a proper development environment set up to be able to make use of these files.
+Please refer to the official Flutter [online documentation](https://docs.flutter.dev/) to get started.
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+After completing the environment setup, you can clone the repo and compile the code to either an emulator or an APK to install on bare-metal.
